@@ -1,0 +1,28 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - "-t"
+      - "gcr.io/$PROJECT_ID/naviguard:$COMMIT_SHA"
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - push
+      - "gcr.io/$PROJECT_ID/naviguard:$COMMIT_SHA"
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - naviguard
+      - "--image=gcr.io/$PROJECT_ID/naviguard:$COMMIT_SHA"
+      - "--region=us-central1"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--set-secrets=PHOENIX_API_KEY=PHOENIX_API_KEY:latest,PHOENIX_COLLECTOR_ENDPOINT=PHOENIX_COLLECTOR_ENDPOINT:latest"
+      - "--set-env-vars=GOOGLE_GENAI_USE_VERTEXAI=1,PHOENIX_PROJECT_NAME=naviguard,PHOENIX_BASE_URL=https://app.phoenix.arize.com/s/prateek-srivastava23"
+
+images:
+  - "gcr.io/$PROJECT_ID/naviguard:$COMMIT_SHA"

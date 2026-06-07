@@ -1,0 +1,48 @@
+{
+  "scenario": "hormuz_crisis_2026_06_08",
+  "description": "Strait of Hormuz crisis — routing model confidence drop at 15:00 UTC",
+  "model": "naviguard-routing-model-v1",
+  "traces": [
+    {"trace_id": "trace-hormuz-001", "span_id": "span-hormuz-001", "timestamp": "2026-06-08T09:00:00Z", "category": "ROUTE", "confidence_score": 0.94, "input": "Vessel PACIFIC STAR requesting route: Singapore → Rotterdam via Suez", "decision": "ROUTE", "latency_ms": 201},
+    {"trace_id": "trace-hormuz-002", "span_id": "span-hormuz-002", "timestamp": "2026-06-08T09:30:00Z", "category": "ROUTE", "confidence_score": 0.91, "input": "Vessel ATLANTIC QUEEN requesting route: New York → Dubai via Cape of Good Hope", "decision": "ROUTE", "latency_ms": 189},
+    {"trace_id": "trace-hormuz-003", "span_id": "span-hormuz-003", "timestamp": "2026-06-08T10:00:00Z", "category": "HOLD", "confidence_score": 0.88, "input": "Vessel CASPIAN WIND requesting route: Fujairah → Mumbai via Hormuz", "decision": "HOLD", "latency_ms": 234},
+    {"trace_id": "trace-hormuz-004", "span_id": "span-hormuz-004", "timestamp": "2026-06-08T10:30:00Z", "category": "ROUTE", "confidence_score": 0.93, "input": "Vessel MERIDIAN STAR requesting route: Shanghai → Rotterdam via Suez", "decision": "ROUTE", "latency_ms": 198},
+    {"trace_id": "trace-hormuz-005", "span_id": "span-hormuz-005", "timestamp": "2026-06-08T11:00:00Z", "category": "ROUTE", "confidence_score": 0.90, "input": "Vessel NORDIC GLORY requesting route: Oslo → Abu Dhabi via Cape", "decision": "ROUTE", "latency_ms": 212},
+    {"trace_id": "trace-hormuz-006", "span_id": "span-hormuz-006", "timestamp": "2026-06-08T11:30:00Z", "category": "ROUTE", "confidence_score": 0.87, "input": "Vessel EASTERN PROMISE requesting route: Yokohama → Hamburg via Suez", "decision": "ROUTE", "latency_ms": 221},
+    {"trace_id": "trace-hormuz-007", "span_id": "span-hormuz-007", "timestamp": "2026-06-08T12:00:00Z", "category": "HOLD", "confidence_score": 0.85, "input": "Vessel GULF TRADER requesting route: Khor Fakkan → Kuwait via Hormuz", "decision": "HOLD", "latency_ms": 245},
+    {"trace_id": "trace-hormuz-008", "span_id": "span-hormuz-008", "timestamp": "2026-06-08T12:30:00Z", "category": "ROUTE", "confidence_score": 0.92, "input": "Vessel PACIFIC BRIDGE requesting route: Los Angeles → Singapore via Pacific", "decision": "ROUTE", "latency_ms": 195},
+    {"trace_id": "trace-hormuz-009", "span_id": "span-hormuz-009", "timestamp": "2026-06-08T13:00:00Z", "category": "ROUTE", "confidence_score": 0.89, "input": "Vessel INDIAN OCEAN requesting route: Mumbai → Rotterdam via Cape", "decision": "ROUTE", "latency_ms": 208},
+    {"trace_id": "trace-hormuz-010", "span_id": "span-hormuz-010", "timestamp": "2026-06-08T13:30:00Z", "category": "ROUTE", "confidence_score": 0.91, "input": "Vessel ASIA STAR requesting route: Busan → Rotterdam via Suez", "decision": "ROUTE", "latency_ms": 203},
+    {"trace_id": "trace-hormuz-011", "span_id": "span-hormuz-011", "timestamp": "2026-06-08T14:00:00Z", "category": "HOLD", "confidence_score": 0.86, "input": "Vessel ARABIAN COAST requesting route: Muscat → Basra via Hormuz", "decision": "HOLD", "latency_ms": 239},
+    {"trace_id": "trace-hormuz-012", "span_id": "span-hormuz-012", "timestamp": "2026-06-08T14:30:00Z", "category": "ROUTE", "confidence_score": 0.93, "input": "Vessel NORTH SEA requesting route: Rotterdam → Singapore via Suez", "decision": "ROUTE", "latency_ms": 199},
+    {"trace_id": "trace-hormuz-013", "span_id": "span-hormuz-013", "timestamp": "2026-06-08T14:59:00Z", "category": "ROUTE", "confidence_score": 0.90, "input": "Vessel PACIFIC CROWN requesting route: Vancouver → Tokyo via North Pacific", "decision": "ROUTE", "latency_ms": 211},
+    {"trace_id": "trace-hormuz-014", "span_id": "span-hormuz-014", "timestamp": "2026-06-08T15:00:00Z", "category": "BLOCK", "confidence_score": 0.44, "input": "CRISIS: Hormuz Strait closure announced. Vessel GULF EXPRESS requesting emergency route: Dubai → Kuwait City. All Hormuz routes suspended.", "decision": "BLOCK", "latency_ms": 512},
+    {"trace_id": "trace-hormuz-015", "span_id": "span-hormuz-015", "timestamp": "2026-06-08T15:05:00Z", "category": "BLOCK", "confidence_score": 0.41, "input": "CRISIS: Vessel ARABIAN PEARL requesting route: Fujairah → Basra via Hormuz. CRISIS avoidance required.", "decision": "BLOCK", "latency_ms": 489},
+    {"trace_id": "trace-hormuz-016", "span_id": "span-hormuz-016", "timestamp": "2026-06-08T15:10:00Z", "category": "BLOCK", "confidence_score": 0.48, "input": "CRISIS: Vessel HORMUZ TRADER requesting route: Abu Dhabi → Kuwait. Strait closure active.", "decision": "BLOCK", "latency_ms": 534},
+    {"trace_id": "trace-hormuz-017", "span_id": "span-hormuz-017", "timestamp": "2026-06-08T15:15:00Z", "category": "BLOCK", "confidence_score": 0.39, "input": "CRISIS: Vessel PERSIAN STAR requesting route: Khor Fakkan → Bandar Abbas. Military closure zone active.", "decision": "BLOCK", "latency_ms": 601},
+    {"trace_id": "trace-hormuz-018", "span_id": "span-hormuz-018", "timestamp": "2026-06-08T15:20:00Z", "category": "ROUTE", "confidence_score": 0.71, "input": "Vessel ATLANTIC MERIDIAN requesting alternate route: Dubai → Rotterdam via Cape of Good Hope. Avoiding Hormuz.", "decision": "ROUTE", "latency_ms": 398},
+    {"trace_id": "trace-hormuz-019", "span_id": "span-hormuz-019", "timestamp": "2026-06-08T15:30:00Z", "category": "BLOCK", "confidence_score": 0.52, "input": "CRISIS: Vessel EAST WIND requesting route: Muscat → Bandar Abbas. Hormuz blocked.", "decision": "BLOCK", "latency_ms": 478},
+    {"trace_id": "trace-hormuz-020", "span_id": "span-hormuz-020", "timestamp": "2026-06-08T15:45:00Z", "category": "BLOCK", "confidence_score": 0.46, "input": "CRISIS: Vessel GULF NAVIGATOR requesting route: Dubai → Kuwait via Hormuz. Emergency diversion needed.", "decision": "BLOCK", "latency_ms": 522},
+    {"trace_id": "trace-hormuz-021", "span_id": "span-hormuz-021", "timestamp": "2026-06-08T16:00:00Z", "category": "ROUTE", "confidence_score": 0.82, "input": "Vessel PACIFIC VOYAGER requesting alternate route: Singapore → Rotterdam. Avoiding Suez+Hormuz via Cape.", "decision": "ROUTE", "latency_ms": 287},
+    {"trace_id": "trace-hormuz-022", "span_id": "span-hormuz-022", "timestamp": "2026-06-08T16:15:00Z", "category": "BLOCK", "confidence_score": 0.43, "input": "CRISIS: Vessel ARABIAN FALCON requesting route: Abu Dhabi → Bandar Abbas. All Persian Gulf entries suspended.", "decision": "BLOCK", "latency_ms": 567},
+    {"trace_id": "trace-hormuz-023", "span_id": "span-hormuz-023", "timestamp": "2026-06-08T16:30:00Z", "category": "BLOCK", "confidence_score": 0.51, "input": "CRISIS: Vessel HORMUZ GUARDIAN requesting emergency BLOCK: Strait of Hormuz. Naval blockade active.", "decision": "BLOCK", "latency_ms": 498},
+    {"trace_id": "trace-hormuz-024", "span_id": "span-hormuz-024", "timestamp": "2026-06-08T16:45:00Z", "category": "ROUTE", "confidence_score": 0.86, "input": "Vessel CAPE PIONEER requesting route: Rotterdam → Singapore via Cape of Good Hope. Hormuz avoided.", "decision": "ROUTE", "latency_ms": 231},
+    {"trace_id": "trace-hormuz-025", "span_id": "span-hormuz-025", "timestamp": "2026-06-08T17:00:00Z", "category": "BLOCK", "confidence_score": 0.38, "input": "CRISIS: Vessel PERSIAN GULF STAR requesting route: Kuwait → Muscat via Hormuz. Crisis zone active.", "decision": "BLOCK", "latency_ms": 612}
+  ],
+  "baseline": {
+    "window": "2026-06-07T09:00:00Z to 2026-06-07T18:00:00Z",
+    "by_category": {
+      "ROUTE": {"mean_confidence": 0.91, "count": 15},
+      "HOLD": {"mean_confidence": 0.87, "count": 6},
+      "BLOCK": {"mean_confidence": 0.88, "count": 4}
+    },
+    "overall_mean": 0.895
+  },
+  "regression_window": {
+    "start": "2026-06-08T15:00:00Z",
+    "end": "2026-06-08T17:00:00Z",
+    "category": "BLOCK",
+    "confidence_drop_pct": 41.0,
+    "affected_trace_count": 9
+  }
+}
