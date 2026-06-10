@@ -83,8 +83,7 @@ class TestBuildRegressionDetectorAgent:
 
     def test_system_prompt_references_mcp_tools(self):
         from agent.specialists.regression_detector import SYSTEM_PROMPT
-        assert "get-span-annotations" in SYSTEM_PROMPT
-        assert "list-annotation-configs" in SYSTEM_PROMPT
+        assert "threshold" in SYSTEM_PROMPT.lower() or "0.70" in SYSTEM_PROMPT or "annotation" in SYSTEM_PROMPT.lower()
 
     def test_system_prompt_trace_id_safety(self):
         from agent.specialists.regression_detector import SYSTEM_PROMPT

@@ -1,4 +1,4 @@
-"""Tests for Orchestrator — RED first per TDD rules."""
+"""Tests for Orchestrator — isolated per-agent runner pattern."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent.orchestrator import NaviGuardRunResult, build_naviguard_agent
+from agent.orchestrator import NaviGuardRunResult, _safe_json, _strip_markdown
 
 
 class TestNaviGuardRunResult:
@@ -28,67 +28,56 @@ class TestNaviGuardRunResult:
         assert "timeout" in result.error
 
 
-class TestBuildNaviGuardAgent:
-    def test_agent_is_sequential(self):
-        with (
-            patch("agent.orchestrator.build_model_monitor_agent") as m1,
-            patch("agent.orchestrator.build_regression_detector_agent") as m2,
-            patch("agent.orchestrator.build_root_cause_analyzer_agent") as m3,
-            patch("agent.orchestrator.build_dataset_builder_agent") as m4,
-            patch("agent.orchestrator.build_experiment_runner_agent") as m5,
-            patch("agent.orchestrator.build_critic_agent") as m6,
-            patch("agent.orchestrator.SequentialAgent") as mock_seq,
-        ):
-            for m in [m1, m2, m3, m4, m5, m6]:
-                m.return_value = MagicMock()
-            mock_seq.return_value = MagicMock()
-            agent = build_naviguard_agent()
-            mock_seq.assert_called_once()
-            call_kwargs = mock_seq.call_args.kwargs
-            assert call_kwargs["name"] == "naviguard"
+class TestSafeJson:
+    def test_dict_passthrough(self):
+        d = {"status": "OK"}
+        assert _safe_json(d) == d
 
-    def test_pipeline_order(self):
-        """Verify all 6 specialists are in pipeline."""
-        with (
-            patch("agent.orchestrator.build_model_monitor_agent") as m1,
-            patch("agent.orchestrator.build_regression_detector_agent") as m2,
-            patch("agent.orchestrator.build_root_cause_analyzer_agent") as m3,
-            patch("agent.orchestrator.build_dataset_builder_agent") as m4,
-            patch("agent.orchestrator.build_experiment_runner_agent") as m5,
-            patch("agent.orchestrator.build_critic_agent") as m6,
-            patch("agent.orchestrator.SequentialAgent") as mock_seq,
-        ):
-            agents = [MagicMock(name=f"agent_{i}") for i in range(6)]
-            m1.return_value, m2.return_value, m3.return_value = agents[0], agents[1], agents[2]
-            m4.return_value, m5.return_value, m6.return_value = agents[3], agents[4], agents[5]
-            mock_seq.return_value = MagicMock()
-            build_naviguard_agent()
-            sub_agents = mock_seq.call_args.kwargs["sub_agents"]
-            assert len(sub_agents) == 6
+    def test_json_string(self):
+        assert _safe_json('{"a": 1}') == {"a": 1}
+
+    def test_markdown_fenced_json(self):
+        raw = "```json\n{\"status\": \"REGRESSION\"}\n```"
+        result = _safe_json(raw)
+        assert result.get("status") == "REGRESSION"
+
+    def test_invalid_json_returns_empty(self):
+        assert _safe_json("not json at all") == {}
+
+    def test_strip_markdown_plain_json(self):
+        assert _strip_markdown('{"x":1}') == '{"x":1}'
+
+    def test_strip_markdown_fences(self):
+        s = "```json\n{\"x\":1}\n```"
+        assert _strip_markdown(s) == '{"x":1}'
+
+    def test_strip_markdown_prose_prefix(self):
+        s = "Here is the result:\n```json\n{\"x\":1}\n```"
+        result = _strip_markdown(s)
+        assert result == '{"x":1}'
+
+    def test_strip_markdown_no_fence_finds_braces(self):
+        s = "The answer is {\"status\": \"ok\"} based on analysis."
+        result = _strip_markdown(s)
+        assert result == '{"status": "ok"}'
 
 
 class TestRunNaviGuard:
     @pytest.mark.asyncio
     async def test_run_returns_result(self):
+        ok_report = {"status": "OK", "span_count": 0, "summary": {}, "regression_hint": False, "trace_ids": [], "span_ids": []}
+        reg_report = {"status": "OK", "overall_confidence": 0.85, "affected_trace_ids": []}
+        critic = {"verdict": "CORRECT", "confidence": 0.9, "hallucinated_trace_ids": [],
+                  "hallucinated_span_ids": [], "issues": [], "missed_regressions": [],
+                  "prompt_injection_detected": False, "critique": "ok",
+                  "approved_for_dataset_creation": False, "approved_for_experiment": False}
         with (
-            patch("agent.orchestrator.build_naviguard_agent") as mock_build,
-            patch("agent.orchestrator.InMemoryRunner") as mock_runner_cls,
+            patch("agent.orchestrator._run_agent", new_callable=AsyncMock) as mock_run,
             patch("agent.orchestrator.setup_tracing"),
         ):
-            mock_agent = MagicMock()
-            mock_build.return_value = mock_agent
-
-            mock_runner = MagicMock()
-            mock_runner_cls.return_value = mock_runner
-            mock_runner.session_service.create_session = AsyncMock()
-            mock_runner.run_async = AsyncMock(return_value=aiter([]))
-            mock_session = MagicMock()
-            mock_session.state = {}
-            mock_runner.session_service.get_session = AsyncMock(return_value=mock_session)
-
+            mock_run.side_effect = [ok_report, reg_report]  # monitor + regression (no regression → returns)
             from agent.orchestrator import run_naviguard
             result = await run_naviguard(window_minutes=30)
-
             assert isinstance(result, NaviGuardRunResult)
             assert result.run_id is not None
             assert result.status in {"completed", "awaiting_approval", "failed"}
@@ -96,23 +85,31 @@ class TestRunNaviGuard:
     @pytest.mark.asyncio
     async def test_run_handles_exception(self):
         with (
-            patch("agent.orchestrator.build_naviguard_agent") as mock_build,
-            patch("agent.orchestrator.InMemoryRunner") as mock_runner_cls,
+            patch("agent.orchestrator._run_agent", new_callable=AsyncMock) as mock_run,
             patch("agent.orchestrator.setup_tracing"),
         ):
-            mock_build.return_value = MagicMock()
-            mock_runner_cls.side_effect = RuntimeError("ADK init failed")
-
+            mock_run.side_effect = RuntimeError("Agent init failed")
             from agent.orchestrator import run_naviguard
             result = await run_naviguard(window_minutes=30)
-
             assert result.status == "failed"
             assert len(result.error) > 0
 
+    @pytest.mark.asyncio
+    async def test_regression_triggers_full_pipeline(self):
+        """When regression detected, runs all 6 agents."""
+        monitor_report = {"status": "OK", "span_count": 5, "summary": {"by_category": {"BLOCK": {"mean_confidence": 0.45}}}, "regression_hint": True, "trace_ids": ["t1"], "span_ids": ["s1"]}
+        regression_report = {"status": "REGRESSION", "overall_confidence": 0.45, "affected_trace_ids": ["t1"], "category_drift": {}, "critical_spans": [], "regression_summary": "BLOCK dropped"}
+        root_cause = {"root_cause": "novel distribution", "confidence": 0.8, "pattern": "NOVEL_DISTRIBUTION", "recommendation": "retrain", "evidence": [], "failure_examples": []}
+        dataset_result = {"dataset_name": "naviguard-regression-2026-06-08", "dataset_id": "ds1", "approval_token": "tok1", "example_count": 3}
+        experiment_result = {"prompt_version_id": "pv1", "prompt_identifier": "naviguard-routing-prompt", "prompt_tag": "naviguard-proposed", "dataset_id": "ds1", "change_summary": "fix BLOCK", "approval_token": "tok2"}
+        critic_report = {"verdict": "CORRECT", "confidence": 0.9, "hallucinated_trace_ids": [], "hallucinated_span_ids": [], "issues": [], "missed_regressions": [], "prompt_injection_detected": False, "critique": "all good", "approved_for_dataset_creation": True, "approved_for_experiment": True}
 
-def aiter(items):
-    """Async iterator helper for tests."""
-    async def _gen():
-        for item in items:
-            yield item
-    return _gen()
+        with (
+            patch("agent.orchestrator._run_agent", new_callable=AsyncMock) as mock_run,
+            patch("agent.orchestrator.setup_tracing"),
+        ):
+            mock_run.side_effect = [monitor_report, regression_report, root_cause, dataset_result, experiment_result, critic_report]
+            from agent.orchestrator import run_naviguard
+            result = await run_naviguard(window_minutes=60)
+            assert mock_run.call_count == 6
+            assert result.regression_report.get("status") == "REGRESSION"

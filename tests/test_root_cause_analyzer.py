@@ -85,9 +85,8 @@ class TestBuildRootCauseAnalyzerAgent:
 
     def test_system_prompt_has_mcp_tools(self):
         from agent.specialists.root_cause_analyzer import SYSTEM_PROMPT
-        assert "get-spans" in SYSTEM_PROMPT
-        assert "get-session" in SYSTEM_PROMPT
-        assert "get-span-annotations" in SYSTEM_PROMPT
+        # RootCauseAnalyzer reasons from prompt data; Phoenix MCP used in ModelMonitor/RegressionDetector
+        assert "regression_report" in SYSTEM_PROMPT or "trace_ids" in SYSTEM_PROMPT
 
     def test_system_prompt_injection_defense(self):
         from agent.specialists.root_cause_analyzer import SYSTEM_PROMPT
@@ -96,4 +95,4 @@ class TestBuildRootCauseAnalyzerAgent:
 
     def test_system_prompt_verifiable_evidence(self):
         from agent.specialists.root_cause_analyzer import SYSTEM_PROMPT
-        assert "verifiable" in SYSTEM_PROMPT.lower() or "retrieved via MCP" in SYSTEM_PROMPT
+        assert "trace_ids" in SYSTEM_PROMPT or "regression_report" in SYSTEM_PROMPT

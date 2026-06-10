@@ -13,12 +13,13 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from agent.config import get_config
 from agent.instrumentation import setup_tracing
-from agent.orchestrator import run_naviguard, NaviGuardRunResult
+from agent.orchestrator import run_naviguard, run_naviguard_stream, NaviGuardRunResult
 from api.approval_store import approval_store
 from api.models import (
     ApproveRequest,
@@ -68,6 +69,27 @@ async def health() -> HealthResponse:
     )
 
 
+@app.post("/run/stream")
+async def run_stream(request: RunRequest) -> StreamingResponse:
+    """SSE stream — steps fire as they complete. Bypasses Cloud Run 300s request timeout."""
+    async def generate():
+        async for event in run_naviguard_stream(
+            window_minutes=request.window_minutes,
+            scenario=request.scenario,
+        ):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
 @app.post("/run", response_model=RunResponse)
 async def run(request: RunRequest) -> RunResponse:
     result = await run_naviguard(
@@ -95,14 +117,92 @@ async def run(request: RunRequest) -> RunResponse:
 
 @app.post("/approve/{token}", response_model=ApproveResponse)
 async def approve(token: str, request: ApproveRequest) -> ApproveResponse:
-    success = approval_store.grant_approval(token)
-    if not success:
+    from agent.pending_actions import consume as _consume_action
+    action = _consume_action(token)
+    if not action:
         raise HTTPException(status_code=404, detail=f"No pending approval for token: {token}")
+
+    action_type = action["type"]
+    spec = action["spec"]
+    result_detail: dict = {}
+
+    try:
+        if action_type == "dataset":
+            result_detail = await _execute_dataset_creation(spec)
+        elif action_type == "experiment":
+            result_detail = await _execute_experiment_creation(spec)
+        else:
+            result_detail = {"warning": f"Unknown action type: {action_type}"}
+    except Exception as exc:
+        result_detail = {"error": str(exc)}
+
     return ApproveResponse(
         token=token,
         approved=True,
-        message=f"Approval granted. Notes: {request.notes or 'none'}",
+        message=f"Approved and executed: {action_type}. Notes: {request.notes or 'none'}",
+        result=result_detail,
     )
+
+
+async def _execute_dataset_creation(spec: dict) -> dict:
+    """Call Phoenix MCP add-dataset-examples with the approved spec."""
+    from agent.phoenix_mcp import phoenix_add_dataset_examples
+    dataset_name = spec.get("dataset_name", "naviguard-regression")
+    examples = spec.get("examples", [])
+    if not examples:
+        return {"warning": "No examples in spec — nothing added to Phoenix"}
+    result_json = await phoenix_add_dataset_examples(
+        dataset_name=dataset_name,
+        examples=json.dumps(examples),
+    )
+    cfg = get_config()
+    phoenix_url = f"{cfg.phoenix_base_url}/datasets"
+    return {
+        "dataset_name": dataset_name,
+        "example_count": len(examples),
+        "phoenix_result": result_json,
+        "phoenix_url": phoenix_url,
+    }
+
+
+async def _execute_experiment_creation(spec: dict) -> dict:
+    """Call Phoenix MCP upsert-prompt + add-prompt-version-tag with the approved spec."""
+    from agent.phoenix_mcp import phoenix_upsert_prompt, phoenix_add_prompt_version_tag
+    identifier = spec.get("prompt_identifier", "naviguard-routing-prompt")
+    template = spec.get("prompt_template", "")
+    change_summary = spec.get("change_summary", "NaviGuard proposed improvement")
+    tag = spec.get("prompt_tag", "naviguard-proposed")
+
+    if not template:
+        return {"warning": "No prompt template in spec — nothing created in Phoenix"}
+
+    upsert_result_json = await phoenix_upsert_prompt(
+        identifier=identifier,
+        template=template,
+        description=change_summary,
+    )
+    upsert_result = json.loads(upsert_result_json) if isinstance(upsert_result_json, str) else upsert_result_json
+    prompt_version_id = upsert_result.get("id", "")
+
+    tag_result = {}
+    if prompt_version_id:
+        tag_result_json = await phoenix_add_prompt_version_tag(
+            prompt_version_id=prompt_version_id,
+            tag=tag,
+        )
+        tag_result = json.loads(tag_result_json) if isinstance(tag_result_json, str) else tag_result_json
+
+    cfg = get_config()
+    phoenix_url = f"{cfg.phoenix_base_url}/prompts/{identifier}"
+    return {
+        "prompt_identifier": identifier,
+        "prompt_version_id": prompt_version_id,
+        "prompt_tag": tag,
+        "change_summary": change_summary,
+        "phoenix_url": phoenix_url,
+        "upsert_result": upsert_result,
+        "tag_result": tag_result,
+    }
 
 
 @app.get("/approvals/pending", response_model=list[PendingApprovalItem])
@@ -210,11 +310,12 @@ async def get_metrics() -> MetricsResponse:
 
 
 async def _query_phoenix_mcp(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
-    """Run a Phoenix MCP tool call via npx subprocess and return parsed result."""
+    """Run a Phoenix MCP tool via pre-installed node binary (avoids npx version-mismatch)."""
     cfg = get_config()
     try:
         cmd = [
-            "npx", "-y", "@arizeai/phoenix-mcp@latest",
+            "node",
+            "/opt/phoenix-mcp/node_modules/@arizeai/phoenix-mcp/build/index.js",
             "--baseUrl", cfg.phoenix_base_url,
             "--apiKey", cfg.phoenix_api_key,
             "--tool", tool_name,
@@ -225,7 +326,7 @@ async def _query_phoenix_mcp(tool_name: str, params: dict[str, Any]) -> dict[str
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
+        stdout, _stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
         if proc.returncode == 0:
             return json.loads(stdout.decode())
         return {}

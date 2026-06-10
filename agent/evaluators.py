@@ -1,10 +1,11 @@
-"""NaviGuard custom evaluator using Gemini via LiteLLM.
+"""NaviGuard custom evaluator using Gemini via Vertex AI (LiteLLM vertex_ai/ prefix).
 
-COMPLIANCE: Always LLM(provider="litellm", model="gemini/gemini-1.5-pro").
-NEVER LLM(provider="openai", ...) — rules violation.
+COMPLIANCE: Always LiteLLMModel(model="vertex_ai/gemini-2.5-flash").
+NEVER gemini/ prefix (routes to AI Studio) or openai/ — both are rules violations.
 """
 
 from __future__ import annotations
+import os
 
 from phoenix.evals import LLMEvaluator, llm_classify
 
@@ -50,10 +51,17 @@ Is the analysis correct or incorrect?
 
 
 def build_gemini_llm():
-    """Build LiteLLM-backed Gemini judge. NEVER OpenAI."""
+    """Build Gemini judge via Vertex AI. vertex_ai/ prefix routes to Vertex, not AI Studio."""
     from phoenix.evals import LiteLLMModel
 
-    return LiteLLMModel(model="gemini/gemini-1.5-pro")
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT", "shipsafe-ai")
+    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+    return LiteLLMModel(
+        model=f"vertex_ai/{model}",
+        vertex_project=project,
+        vertex_location=location,
+    )
 
 
 def build_regression_evaluator() -> LLMEvaluator:

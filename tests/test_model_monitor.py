@@ -95,8 +95,8 @@ class TestBuildModelMonitorAgent:
 
     def test_system_prompt_mentions_list_traces(self):
         from agent.specialists.model_monitor import SYSTEM_PROMPT
-        assert "list-traces" in SYSTEM_PROMPT
-        assert "get-spans" in SYSTEM_PROMPT
+        assert "list_traces" in SYSTEM_PROMPT or "list-traces" in SYSTEM_PROMPT
+        assert "get_spans" in SYSTEM_PROMPT or "get-spans" in SYSTEM_PROMPT
         assert "confidence" in SYSTEM_PROMPT.lower()
 
     def test_system_prompt_has_injection_defense(self):

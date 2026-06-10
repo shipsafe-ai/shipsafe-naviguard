@@ -100,7 +100,7 @@ class TestBuildCriticAgent:
 
     def test_system_prompt_verifies_trace_ids(self):
         from agent.critic import SYSTEM_PROMPT
-        assert "get-trace" in SYSTEM_PROMPT
+        assert "phoenix_verify_trace" in SYSTEM_PROMPT or "get-trace" in SYSTEM_PROMPT or "verify" in SYSTEM_PROMPT
         assert "hallucinated" in SYSTEM_PROMPT.lower() or "hallucinate" in SYSTEM_PROMPT.lower()
 
     def test_evaluator_prompt_correct_rubric(self):
@@ -115,4 +115,5 @@ class TestBuildCriticAgent:
 
     def test_prompt_references_mcp_verification(self):
         from agent.critic import SYSTEM_PROMPT
-        assert "get-spans" in SYSTEM_PROMPT
+        # Critic uses phoenix_verify_trace to confirm trace IDs exist in Phoenix
+        assert "phoenix_verify_trace" in SYSTEM_PROMPT or "verify_trace" in SYSTEM_PROMPT

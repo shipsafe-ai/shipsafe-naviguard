@@ -119,8 +119,9 @@ class TestRunEndpoint:
 
 class TestApproveEndpoint:
     def test_approve_valid_token(self, client):
-        from api.main import approval_store
-        approval_store.request_approval("tok-api-1", "dataset", {"name": "test"})
+        from agent.pending_actions import register, clear
+        clear()
+        register("tok-api-1", "dataset", {"dataset_name": "test", "examples": []})
         response = client.post("/approve/tok-api-1", json={})
         assert response.status_code == 200
         data = response.json()
@@ -132,8 +133,9 @@ class TestApproveEndpoint:
         assert response.status_code == 404
 
     def test_approve_with_notes(self, client):
-        from api.main import approval_store
-        approval_store.request_approval("tok-api-2", "experiment", {})
+        from agent.pending_actions import register, clear
+        clear()
+        register("tok-api-2", "experiment", {"prompt_identifier": "naviguard-routing-prompt", "prompt_template": "test", "change_summary": "test", "prompt_tag": "naviguard-proposed"})
         response = client.post("/approve/tok-api-2", json={"notes": "Reviewed by operator"})
         assert response.status_code == 200
         data = response.json()

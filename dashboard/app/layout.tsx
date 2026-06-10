@@ -5,6 +5,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'NaviGuard — AI Quality Monitor',
   description: 'Self-improving AI quality monitoring powered by Arize Phoenix',
+  icons: { icon: '/favicon.svg', shortcut: '/favicon.svg' },
 }
 
 export default function RootLayout({
@@ -17,6 +18,12 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#0A0A0B] text-zinc-50">
         <nav className="border-b border-[#27272A] bg-[#111113] px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <a href="https://shipsafe-landing-o34wppiwiq-uc.a.run.app"
+               className="text-[#52525B] font-mono text-xs hover:text-[#A1A1AA] transition-colors"
+               style={{ textDecoration: 'none' }}>
+              ← ShipSafe
+            </a>
+            <span className="text-[#27272A] text-xs">·</span>
             <span className="text-[#EC4899] font-mono text-sm font-medium tracking-widest uppercase">
               NaviGuard
             </span>

@@ -35,6 +35,7 @@ class ApproveResponse(BaseModel):
     token: str
     approved: bool
     message: str
+    result: dict[str, Any] = {}
 
 
 class PendingApprovalItem(BaseModel):

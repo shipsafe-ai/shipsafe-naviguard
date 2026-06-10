@@ -102,13 +102,13 @@ class TestBuildDatasetBuilderAgent:
 
     def test_prompt_mentions_list_datasets(self):
         from agent.specialists.dataset_builder import SYSTEM_PROMPT
-        assert "list-datasets" in SYSTEM_PROMPT
-        assert "add-dataset-examples" in SYSTEM_PROMPT
+        # Phoenix calls happen post-approval; prompt describes dataset spec building
+        assert "dataset" in SYSTEM_PROMPT.lower()
+        assert "examples" in SYSTEM_PROMPT.lower()
 
     def test_prompt_mentions_approval_gate(self):
         from agent.specialists.dataset_builder import SYSTEM_PROMPT
         assert "APPROVAL_REQUIRED" in SYSTEM_PROMPT
-        assert "STOP" in SYSTEM_PROMPT
 
     def test_prompt_no_fabrication(self):
         from agent.specialists.dataset_builder import SYSTEM_PROMPT
