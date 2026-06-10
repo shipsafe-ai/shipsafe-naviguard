@@ -1,6 +1,6 @@
 {
   "name": "shipsafe-naviguard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ShipSafe Naviguard CLI \u2014 powered by Arize Phoenix",
   "type": "module",
   "bin": {
@@ -9,5 +9,8 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "bin"
+  ]
 }
