@@ -19,12 +19,16 @@ system producing confidence scores** — fraud detection, medical triage,
 recommendation ranking, content moderation, support routing, or any model
 emitting a scored decision per request.
 
+![The blind spot vs the fix — overall accuracy reads 80% OK while one category silently collapses to 0.31](docs/problem-solution.png)
+
 ---
 
 ## The self-improvement loop
 
 This is the whole product in one diagram. Every step is traceable in Arize
 Phoenix, and nothing touches your systems of record without human sign-off.
+
+![NaviGuard multi-agent pipeline — five specialists and an adversarial Critic on Google ADK, closing the self-improvement loop in Arize Phoenix after human approval](docs/architecture-pipeline.png)
 
 ```
    Phoenix traces (your model's real decisions)
@@ -62,6 +66,8 @@ NaviGuard reasons over your telemetry instead of pattern-matching on it.
 Raw Phoenix trace data is formatted into structured context, Gemini produces a
 typed decision (verdict + confidence + evidence + reasoning), and the result is
 streamed to the operator for approval.
+
+![Gemini as the brain — raw Phoenix spans become a typed verdict with confidence and a live chain-of-thought, gated by a human](docs/gemini-data-flow.png)
 
 **Five specialists plus an adversarial Critic**, orchestrated as a fast,
 partly-parallel pipeline:
@@ -186,6 +192,8 @@ category, and the same loop runs on your model.
 ---
 
 ## Architecture
+
+![System architecture — a Next.js dashboard and a FastAPI agent on Cloud Run, Gemini on Vertex AI, and the Arize Phoenix MCP](docs/architecture-overview.png)
 
 - **Agent brain** — Python on Google ADK, deployed to **Google Cloud Run**.
   Specialists are defined as ADK `LlmAgent`s; the production hot path uses
