@@ -13,7 +13,7 @@ Every team shipping AI into production faces the same blind spot: your model mak
 
 That capability — catching category-level regressions and closing the loop — has always existed, but only for companies with full ML platform teams. We wanted to put it one command away from anyone. Our demo makes it visceral: a ship-routing model whose **crisis-avoidance** confidence silently drops from 0.70 to 0.31 in the middle of a Strait of Hormuz crisis. Green dashboard. Wrong decision.
 
-![Problem vs solution](problem-solution.png)
+![Problem vs solution](https://raw.githubusercontent.com/shipsafe-ai/shipsafe-naviguard/main/docs/problem-solution.png)
 
 ## What it does
 
@@ -34,11 +34,11 @@ Five specialist agents plus an adversarial Critic, orchestrated on **Google ADK*
 
 **System architecture — deployment, Gemini, and the Phoenix MCP:**
 
-![System architecture](architecture-overview.png)
+![System architecture](https://raw.githubusercontent.com/shipsafe-ai/shipsafe-naviguard/main/docs/architecture-overview.png)
 
 **The multi-agent pipeline** — `ModelMonitor → RegressionDetector → RootCauseAnalyzer + DatasetBuilder + ExperimentRunner (parallel) → Critic → Human Approval Gate`, with the self-improvement loop back into Phoenix:
 
-![Multi-agent pipeline](architecture-pipeline.png)
+![Multi-agent pipeline](https://raw.githubusercontent.com/shipsafe-ai/shipsafe-naviguard/main/docs/architecture-pipeline.png)
 
 ```mermaid
 flowchart TD
@@ -59,7 +59,7 @@ flowchart TD
 
 **Gemini is the brain, not a chatbot** — raw Phoenix data becomes structured context, Gemini reasons to a typed verdict with confidence and evidence, and its chain-of-thought streams live to the operator:
 
-![Gemini reasoning flow](gemini-data-flow.png)
+![Gemini reasoning flow](https://raw.githubusercontent.com/shipsafe-ai/shipsafe-naviguard/main/docs/gemini-data-flow.png)
 
 **Stack:** Python · Google ADK · Gemini 2.5 Flash (Vertex AI) · Arize Phoenix + Phoenix MCP · FastAPI · Server-Sent Events · Next.js + Tailwind · Cloud Run · Secret Manager · OpenTelemetry / OpenInference · Docker.
 
