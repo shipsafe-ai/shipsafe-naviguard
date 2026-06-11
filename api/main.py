@@ -219,21 +219,22 @@ async def list_pending_approvals() -> list[PendingApprovalItem]:
 
 @app.get("/regressions", response_model=list[RegressionItem])
 async def get_regressions() -> list[RegressionItem]:
-    """Query Phoenix via MCP for regression-annotated spans."""
-    result = await _query_phoenix_mcp("get-spans", {"project": "naviguard", "limit": 100})
-    spans = result.get("spans", [])
+    """Below-threshold spans via the working Phoenix MCP stdio client."""
+    from agent.phoenix_mcp import phoenix_get_spans
+
+    spans = _parse_spans(await phoenix_get_spans(project_name="naviguard", limit=20))
     regressions = []
     for span in spans:
-        conf = _extract_confidence(span)
+        conf = _coerce_conf(span.get("confidence"))
         if conf is not None and conf < 0.70:
             regressions.append(
                 RegressionItem(
-                    trace_id=span.get("traceId", span.get("trace_id", "")),
-                    span_id=span.get("spanId", span.get("span_id", "")),
-                    timestamp=span.get("startTime", span.get("timestamp", "")),
+                    trace_id=span.get("traceId", ""),
+                    span_id=span.get("spanId", ""),
+                    timestamp=span.get("startTime", ""),
                     confidence_score=conf,
-                    category=_extract_category(span),
-                    annotation=span.get("annotation"),
+                    category=span.get("category") or "UNKNOWN",
+                    annotation=None,
                 )
             )
     return regressions
@@ -241,56 +242,70 @@ async def get_regressions() -> list[RegressionItem]:
 
 @app.get("/datasets", response_model=list[DatasetItem])
 async def get_datasets() -> list[DatasetItem]:
-    """Query Phoenix via MCP for naviguard datasets."""
-    result = await _query_phoenix_mcp("list-datasets", {})
-    datasets = result.get("datasets", [])
-    return [
-        DatasetItem(
-            dataset_id=d.get("id", d.get("dataset_id", "")),
-            dataset_name=d.get("name", d.get("dataset_name", "")),
-            example_count=d.get("exampleCount", d.get("example_count", 0)),
-            created_at=d.get("createdAt", d.get("created_at", "")),
+    """naviguard datasets via the working Phoenix MCP stdio client."""
+    from agent.phoenix_mcp import phoenix_list_datasets
+
+    datasets = _parse_list(await phoenix_list_datasets(), "datasets")
+    out = []
+    for d in datasets:
+        if not isinstance(d, dict):
+            continue
+        name = (d.get("name") or d.get("dataset_name") or "")
+        if "naviguard" not in name.lower():
+            continue
+        out.append(
+            DatasetItem(
+                dataset_id=d.get("id", d.get("dataset_id", "")),
+                dataset_name=name,
+                example_count=d.get("exampleCount", d.get("example_count", 0)) or 0,
+                created_at=d.get("createdAt", d.get("created_at", "")) or "",
+            )
         )
-        for d in datasets
-        if "naviguard" in d.get("name", d.get("dataset_name", "")).lower()
-    ]
+    return out
 
 
 @app.get("/experiments", response_model=list[ExperimentItem])
 async def get_experiments() -> list[ExperimentItem]:
-    """Query Phoenix via MCP for naviguard experiments."""
-    result = await _query_phoenix_mcp("list-prompt-versions", {"identifier": "naviguard-routing-prompt"})
-    versions = result.get("versions", [])
-    return [
-        ExperimentItem(
-            prompt_version_id=v.get("id", ""),
-            prompt_identifier=v.get("identifier", "naviguard-routing-prompt"),
-            prompt_tag=",".join(v.get("tags", [])),
-            dataset_id=v.get("datasetId", ""),
-            change_summary=v.get("description", v.get("change_summary", "")),
-            created_at=v.get("createdAt", ""),
+    """naviguard prompt versions via the working Phoenix MCP stdio client."""
+    from agent.phoenix_mcp import phoenix_list_prompt_versions
+
+    versions = _parse_list(await phoenix_list_prompt_versions("naviguard-routing-prompt"), "versions")
+    out = []
+    for v in versions:
+        if not isinstance(v, dict):
+            continue
+        tags = v.get("tags", [])
+        out.append(
+            ExperimentItem(
+                prompt_version_id=v.get("id", ""),
+                prompt_identifier=v.get("identifier", "naviguard-routing-prompt"),
+                prompt_tag=",".join(tags) if isinstance(tags, list) else str(tags or ""),
+                dataset_id=v.get("datasetId", ""),
+                change_summary=v.get("description", v.get("change_summary", "")),
+                created_at=v.get("createdAt", ""),
+            )
         )
-        for v in versions
-    ]
+    return out
 
 
 @app.get("/metrics", response_model=MetricsResponse)
 async def get_metrics() -> MetricsResponse:
     """Confidence timeline from Phoenix spans via MCP."""
+    from agent.phoenix_mcp import phoenix_get_spans
+
     cfg = get_config()
-    result = await _query_phoenix_mcp("get-spans", {"project": "naviguard", "limit": 200})
-    spans = result.get("spans", [])
+    spans = _parse_spans(await phoenix_get_spans(project_name="naviguard", limit=20))
 
     timeline = []
     by_category: dict[str, list[float]] = {}
     regression_windows = []
 
     for span in spans:
-        conf = _extract_confidence(span)
+        conf = _coerce_conf(span.get("confidence"))
         if conf is None:
             continue
-        ts = span.get("startTime", span.get("timestamp", ""))
-        cat = _extract_category(span)
+        ts = span.get("startTime", "")
+        cat = span.get("category") or "UNKNOWN"
         timeline.append({"timestamp": ts, "confidence_score": conf, "category": cat})
         by_category.setdefault(cat, []).append(conf)
         if conf < cfg.confidence_regression_threshold:
@@ -367,3 +382,40 @@ def _extract_category(span: dict[str, Any]) -> str:
     if isinstance(attrs, dict):
         return str(attrs.get("category", "UNKNOWN"))
     return "UNKNOWN"
+
+
+def _parse_spans(raw: str) -> list[dict[str, Any]]:
+    """Parse phoenix_get_spans JSON (a list, or {'spans': [...]}) into a span list."""
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if isinstance(data, list):
+        return [s for s in data if isinstance(s, dict)]
+    if isinstance(data, dict):
+        return [s for s in data.get("spans", []) if isinstance(s, dict)]
+    return []
+
+
+def _parse_list(raw: str, key: str) -> list[Any]:
+    """Parse an MCP list result (a bare list, or {key: [...]})."""
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        return data.get(key, []) or []
+    return []
+
+
+def _coerce_conf(val: Any) -> float | None:
+    """Coerce a confidence value (float or str) to a 0..1 float, else None."""
+    if val is None or val == "":
+        return None
+    try:
+        f = float(val)
+        return f if 0.0 <= f <= 1.0 else None
+    except (ValueError, TypeError):
+        return None
